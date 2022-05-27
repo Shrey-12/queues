@@ -1,0 +1,251 @@
+
+#include<stdio.h>
+#include<stdlib.h>
+
+struct WaitQueue{
+	int size;
+	int front;
+	int rear;
+	int* arr1;
+};
+
+struct CircularQueue{
+	int size;
+	int front;
+	int rear;
+	int* arr2;
+};
+
+struct ServiceList{
+    struct CircularQueue* CircularQueue;
+	struct ServiceList* next;
+	int count;
+}*head;
+
+
+struct CircularQueue* BuildCircularQueue(struct CircularQueue* c){
+    c->size=5;
+    c->front=c->rear=-1;
+    c->arr2=(int*)(malloc(c->size*sizeof(int)));
+    return c;
+}
+
+void BuildWaitQueue(struct WaitQueue* w){
+    w->size=10;
+    w->front=w->rear=-1;
+    w->arr1=(int*)(malloc(w->size*sizeof(int)));
+}
+
+void BuildServiceList(struct CircularQueue* c){
+	struct ServiceList* newnode;
+	newnode=(struct ServiceList*)malloc(sizeof(struct ServiceList));
+	newnode->next=NULL;
+    newnode->CircularQueue=BuildCircularQueue(c);
+    head=newnode;
+}
+
+//isEmpty function for wait Queue
+int IsEmptyWaitQueue(struct WaitQueue* w){
+	if(w->front==-1){
+		return 1;}
+	return 0;
+}
+
+//isEmpty function for circular Queue
+int IsEmptyCircularQueue(struct CircularQueue* c){
+	if(c->front==-1){
+		return 1;}
+	return 0;
+}
+
+//isFull function for wait Queue
+int IsFullWaitQueue(struct WaitQueue* w){
+	if((w->rear+1)%w->size==w->front){
+		return 1;}
+	return 0;
+}
+
+//isFull function for circular Queue
+int IsFullCircularQueue(struct CircularQueue* c){
+	if((c->rear+1)%c->size==c->front){
+		return 1;}
+	return 0;
+}
+
+//Enqueue for wait queue
+void EnqueueWaitQueue(struct WaitQueue* w,int val){
+	//condition for keeping the linked list, if q->r+1 in between 0 and 4= q->front then the queue is full
+	if((w->rear+1)%w->size==w->front){
+		// printf("Wait queue overflow overflow\n");
+		w->rear=(w->rear+1)%w->size;
+		w->arr1[w->rear]=val;
+
+	}
+	else{
+		if(IsEmptyWaitQueue(w)){
+			w->front=0;
+		}
+		//shift r pointer by one- such that it remains within 0 and 4
+		w->rear=(w->rear+1)%w->size;
+		w->arr1[w->rear]=val;
+		 printf("Enqued element in wait list: %d\n", val);
+	}
+}
+
+//enqueue for circular queue
+void EnqueueCircularQueue(struct CircularQueue* c,int val){
+	//condition for keeping the linked list, if q->r+1 in between 0 and 4= q->front then the queue is full
+	if((c->rear+1)%c->size==c->front){
+		printf("Circular queue inside service list overflow\n");
+	}
+	else{
+		if(IsEmptyCircularQueue(c)){
+			c->front=0;
+		}
+		//shift r pointer by one- such that it remains within 0 and 4
+		c->rear=(c->rear+1)%c->size;
+		c->arr2[c->rear]=val;
+		 printf("Enqued element in Circular list: %d\n", val);
+	}
+}
+//dequeue for wait queue
+//front(f) hamesha khali hota hai 
+int DequeueWaitQueue(struct WaitQueue* w){
+	int a=-1;
+	if(w->front==-1){
+		printf("Queue underflow\n");
+	}
+	else{
+		a=w->arr1[w->front];
+		if(w->front==w->rear){
+			w->front=w->rear=-1;}
+		else
+			w->front=((w->front+1)%(w->size));
+	}
+	return a;
+}
+
+//dequeue for circular queue
+int DequeueCircularQueue(struct CircularQueue* c){
+	int a=-1;
+	if(c->front==-1){
+		printf("Queue underflow\n");
+	}
+	else{
+		a=c->arr2[c->front];
+		if(c->front==c->rear){
+			c->front=c->rear=-1;}
+		else
+			c->front=((c->front+1)%(c->size));
+	}
+	return a;
+}
+
+
+//enqueuing mult
+void multEnqueue(struct WaitQueue* w,int x){
+    //how to traverse till node where we have to check the circular list full condition?
+    struct ServiceList* newnode,* temp;
+    temp=head;
+		while(temp->next!=NULL){
+			temp=temp->next;
+		}
+        struct CircularQueue* c=temp->CircularQueue;
+
+    if (!IsFullCircularQueue(c) && IsEmptyWaitQueue(w))
+    {
+        EnqueueCircularQueue(c,x);
+        return;
+    }
+    if(IsFullCircularQueue(c) && !IsFullWaitQueue(w)){
+		EnqueueWaitQueue(w,x);
+        return;
+	}
+	if(IsFullWaitQueue(w) && IsFullCircularQueue(c)){
+		newnode=(struct ServiceList*)malloc(sizeof(struct ServiceList));
+		newnode->CircularQueue->arr2=(int*)(malloc(5*sizeof(int)));
+
+		newnode->next=NULL;
+
+		//traversing to the end of the ServiceList and attaching the newnode to the serviceList
+        temp=head;
+		while(temp->next!=NULL){
+			temp=temp->next;
+		}
+		temp->next=newnode;
+		
+		struct CircularQueue* q=BuildCircularQueue(c);
+		//dequeing 5 elements from waitlist and enqueing into the newly created Circular Queue in newnode in service list
+		for(int i=0;i<5;i++){
+			int a=DequeueWaitQueue(w);
+			printf("%d is being dequeued\t",a);
+			EnqueueCircularQueue(q,a);
+		}
+		EnqueueWaitQueue(w,x);
+        printf("%d has been enqueued into the wait queue after creating a newnode in service list\n",x);
+	}
+}
+
+int multDequeue(struct WaitQueue* w,struct CircularQueue* c,struct ServiceList* head){
+	if(!IsEmptyCircularQueue && !IsEmptyWaitQueue){
+		int a=DequeueCircularQueue(c);
+		printf("%d has been dequeued from the circular list\n",a);
+		int b=DequeueWaitQueue(w);
+		EnqueueCircularQueue(c,b);
+		printf("%d has been dequeued from the wait list and enqueued into the circular queue\n",b);
+		return a;
+	}
+	else if(!IsEmptyCircularQueue && IsEmptyWaitQueue){
+		int a=DequeueCircularQueue(c);
+		printf("%d has been dequeued from the circular queue\n",a);
+		return a;
+	}
+	else if(IsEmptyWaitQueue && IsEmptyCircularQueue){
+		if(head->next!=NULL){
+		struct ServiceList* temp;
+		temp=head;
+		head=head->next;
+		free(temp);
+		printf("The node at the beginning has been deleted\n");}
+	}
+
+}
+
+
+int QueueSizeWaitQueue(struct WaitQueue* w){
+	return w->size;
+
+}
+
+int QueueSizeCircularQueue(struct CircularQueue* c){
+	return c->size;
+
+}
+
+int main(){
+    struct CircularQueue c;
+   	struct WaitQueue w;
+
+    BuildServiceList(&c);
+    BuildWaitQueue(&w);
+    multEnqueue(&w,5);
+    multEnqueue(&w,6);
+    multEnqueue(&w,7);
+    multEnqueue(&w,8);
+    multEnqueue(&w,9);
+    multEnqueue(&w,10);
+    multEnqueue(&w,11);
+    multEnqueue(&w,12);
+    multEnqueue(&w,13);
+    multEnqueue(&w,14);
+    multEnqueue(&w,15);
+    multEnqueue(&w,16);
+    multEnqueue(&w,17);
+	multEnqueue(&w,18);
+	multEnqueue(&w,19);
+	multEnqueue(&w,20);
+	multEnqueue(&w,21);
+	multEnqueue(&w,22);
+	
+
+}
